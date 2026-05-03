@@ -157,8 +157,10 @@ def fetch_all_events() -> Iterable[StravaEvent]:
             # Skip events whose next occurrence is already in the past
             try:
                 occurs_at = datetime.fromisoformat(row.date.replace("Z", "+00:00"))
+                if occurs_at.tzinfo is None:
+                    occurs_at = occurs_at.replace(tzinfo=timezone.utc)
                 if occurs_at < now:
                     continue
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
             yield row
