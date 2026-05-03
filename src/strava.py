@@ -98,14 +98,10 @@ def _list_club_events(access_token: str, club_id: int) -> list[dict]:
     return events
 
 
-def _format_event(club_name: str, club_id: int, event: dict) -> StravaEvent | None:
-    """Flatten a Strava group event payload into our row shape."""
-    upcoming = event.get("upcoming_occurrences") or []
-    if not upcoming:
-        return None
-    next_occurrence = upcoming[0]
-
-    # Strava returns address as a dict in some regions, string in others
+def _format_occurrence(
+    club_name: str, club_id: int, event: dict, occurrence: str
+) -> StravaEvent:
+    """Build one StravaEvent for a single occurrence of a group event."""
     address = event.get("address") or ""
     if isinstance(address, dict):
         address = ", ".join(v for v in address.values() if v)
@@ -116,13 +112,16 @@ def _format_event(club_name: str, club_id: int, event: dict) -> StravaEvent | No
         image = route.get("map_urls", {}).get("retina_url", "") or ""
 
     event_id = event.get("id")
-    link = f"https://www.strava.com/clubs/{club_id}/group_events/{event_id}" if event_id else ""
+    base_link = f"https://www.strava.com/clubs/{club_id}/group_events/{event_id}" if event_id else ""
+    # Append occurrence date as a fragment so each occurrence gets a unique
+    # dedup key in the sheet while the link still points to the event page.
+    link = f"{base_link}#{occurrence}" if base_link else ""
 
     return StravaEvent(
         source="strava",
         club=club_name,
         title=event.get("title") or "",
-        date=next_occurrence,
+        date=occurrence,
         location=address,
         description=(event.get("description") or "").strip(),
         link=link,
@@ -132,7 +131,7 @@ def _format_event(club_name: str, club_id: int, event: dict) -> StravaEvent | No
 
 
 def fetch_all_events() -> Iterable[StravaEvent]:
-    """Top-level entry: yields every upcoming event across all the athlete's clubs."""
+    """Top-level entry: yields every upcoming occurrence across all the athlete's clubs."""
     client_id = os.environ["STRAVA_CLIENT_ID"]
     client_secret = os.environ["STRAVA_CLIENT_SECRET"]
     refresh_token = os.environ["STRAVA_REFRESH_TOKEN"]
@@ -151,16 +150,13 @@ def fetch_all_events() -> Iterable[StravaEvent]:
             continue
 
         for event in events:
-            row = _format_event(club_name, club_id, event)
-            if row is None:
-                continue
-            # Skip events whose next occurrence is already in the past
-            try:
-                occurs_at = datetime.fromisoformat(row.date.replace("Z", "+00:00"))
-                if occurs_at.tzinfo is None:
-                    occurs_at = occurs_at.replace(tzinfo=timezone.utc)
-                if occurs_at < now:
-                    continue
-            except (ValueError, TypeError):
-                pass
-            yield row
+            for occurrence in event.get("upcoming_occurrences") or []:
+                try:
+                    occurs_at = datetime.fromisoformat(occurrence.replace("Z", "+00:00"))
+                    if occurs_at.tzinfo is None:
+                        occurs_at = occurs_at.replace(tzinfo=timezone.utc)
+                    if occurs_at < now:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+                yield _format_occurrence(club_name, club_id, event, occurrence)
