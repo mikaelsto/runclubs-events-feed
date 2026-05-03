@@ -84,7 +84,12 @@ def _list_my_clubs(access_token: str) -> list[dict]:
 
 
 def _list_club_events(access_token: str, club_id: int) -> list[dict]:
-    """Return all group events for a club."""
+    """Return all group events for a club.
+
+    NOTE: do NOT add pagination here. The /clubs/{id}/group_events endpoint
+    ignores the `page` parameter and returns the same results on every call,
+    causing an infinite loop that burns through the Strava rate limit.
+    """
     return _get(access_token, f"/clubs/{club_id}/group_events")  # type: ignore[return-value]
 
 
