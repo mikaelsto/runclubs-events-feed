@@ -83,7 +83,7 @@ You authorize your own Strava account once to give the script long-lived read ac
    - `STRAVA_REFRESH_TOKEN`
    - `GOOGLE_SERVICE_ACCOUNT_JSON` — paste the **entire JSON file contents** as the value
    - `GOOGLE_SHEET_ID`
-3. The workflow in `.github/workflows/weekly-sync.yml` runs every Monday at 06:00 UTC. You can also run it manually from the Actions tab (**Run workflow** button).
+3. The workflow in `.github/workflows/daily-sync.yml` runs every day at 05:00 and 11:00 UTC. You can also run it manually from the Actions tab (**Run workflow** button).
 
 ---
 
@@ -108,7 +108,7 @@ The first run writes the header row and appends all upcoming events + recent pos
 
 ## Customising
 
-- **Schedule**: edit the cron line in `.github/workflows/weekly-sync.yml`.
+- **Schedule**: edit the cron lines in `.github/workflows/daily-sync.yml`.
 - **Columns**: edit `HEADERS` in `src/sheets.py` and the corresponding dataclasses in `src/strava.py` / `src/rss.py`.
 - **Filter by club**: if you want to exclude some Strava clubs from the fetch, add a `strava_exclude_clubs:` list to `config.yaml` and filter on `club["id"]` inside `strava.fetch_all_events`.
 

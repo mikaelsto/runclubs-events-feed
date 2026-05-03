@@ -1,4 +1,4 @@
-name: Weekly events sync
+name: Daily events sync
 
 on:
   schedule:

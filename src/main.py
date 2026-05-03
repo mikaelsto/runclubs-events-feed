@@ -7,7 +7,7 @@ repeatedly — only new rows are added.
 Run locally:
     python -m src.main
 
-Or via GitHub Actions (see .github/workflows/weekly-sync.yml).
+Or via GitHub Actions (see .github/workflows/daily-sync.yml).
 """
 
 from __future__ import annotations
