@@ -15,6 +15,7 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable
 
 import requests
@@ -53,6 +54,13 @@ def _refresh_access_token(client_id: str, client_secret: str, refresh_token: str
     resp.raise_for_status()
     data = resp.json()
     log.info("Refreshed Strava access token (expires at %s)", data.get("expires_at"))
+
+    new_refresh = data.get("refresh_token")
+    if new_refresh and new_refresh != refresh_token:
+        marker = Path(os.environ.get("STRAVA_ROTATION_MARKER", "/tmp/strava_rotated_refresh_token"))
+        marker.write_text(new_refresh)
+        log.warning("Strava rotated the refresh_token; wrote new value to %s", marker)
+
     return data["access_token"]
 
 

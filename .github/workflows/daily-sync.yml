@@ -38,6 +38,8 @@ jobs:
           STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GH_TOKEN: ${{ secrets.SECRETS_PAT }}
+          SECRETS_REPO: mikaelsto/runclubs-events-feed
         run: python -m src.main
 
       - name: Generate HTML infographic

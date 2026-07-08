@@ -15,6 +15,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -65,7 +66,35 @@ def main() -> int:
     # --- Write to Sheet -----------------------------------------------
     appended = sheets.append_rows(sheet_id, worksheet_name, rows)
     log.info("Done. Appended %d new rows.", appended)
+
+    _maybe_persist_rotated_refresh_token()
     return 0
+
+
+def _maybe_persist_rotated_refresh_token() -> None:
+    marker = Path(os.environ.get("STRAVA_ROTATION_MARKER", "/tmp/strava_rotated_refresh_token"))
+    if not marker.exists():
+        return
+    repo = os.environ.get("SECRETS_REPO")
+    if not repo:
+        log.warning("Strava rotated the refresh_token but SECRETS_REPO is not set; skipping GH secret update")
+        return
+    new_token = marker.read_text().strip()
+    try:
+        subprocess.run(
+            ["gh", "secret", "set", "STRAVA_REFRESH_TOKEN", "--repo", repo],
+            input=new_token,
+            text=True,
+            check=True,
+        )
+        log.info("Updated STRAVA_REFRESH_TOKEN secret on %s with rotated value", repo)
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        log.error("Failed to update rotated refresh_token: %s", exc)
+    finally:
+        try:
+            marker.unlink()
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":
