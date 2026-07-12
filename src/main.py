@@ -72,8 +72,8 @@ def main() -> int:
     log.info("Collected %d total rows before dedupe", len(rows))
 
     # --- Write to Sheet -----------------------------------------------
-    appended = sheets.append_rows(sheet_id, worksheet_name, rows)
-    log.info("Done. Appended %d new rows.", appended)
+    appended, updated = sheets.append_rows(sheet_id, worksheet_name, rows)
+    log.info("Done. Appended %d new rows, updated %d existing rows.", appended, updated)
 
     _maybe_persist_rotated_refresh_token()
     return exit_code
