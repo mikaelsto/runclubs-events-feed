@@ -51,15 +51,23 @@ def main() -> int:
     worksheet_name = config.get("worksheet_name", "Events")
 
     rows: list[dict] = []
+    exit_code = 0
 
     # --- Strava --------------------------------------------------------
+    # A failure here (bad/expired auth, missing env var) must fail the job —
+    # swallowing it silently makes GitHub Actions report success while the
+    # sheet quietly stops receiving updates. Rows collected before a
+    # mid-iteration failure (e.g. one club erroring after others succeeded)
+    # are still written below.
     try:
         for event in strava.fetch_all_events():
             rows.append(dataclasses.asdict(event))
     except KeyError as exc:
         log.error("Missing Strava env var: %s", exc)
+        exit_code = 1
     except Exception as exc:
         log.exception("Strava fetch failed: %s", exc)
+        exit_code = 1
 
     log.info("Collected %d total rows before dedupe", len(rows))
 
@@ -68,7 +76,7 @@ def main() -> int:
     log.info("Done. Appended %d new rows.", appended)
 
     _maybe_persist_rotated_refresh_token()
-    return 0
+    return exit_code
 
 
 def _maybe_persist_rotated_refresh_token() -> None:
